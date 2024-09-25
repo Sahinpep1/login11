@@ -1,4 +1,5 @@
 ﻿using login11.Data;
+using login11.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -41,9 +42,21 @@ namespace login11
             {
                 // Kullanıcıyı e-posta ile bul
                 var user = context.Users.FirstOrDefault(u => u.Email == email);
+                string failureReason = "";
+                var loginAttempt = new LoginAttempt
+                {
+                    Email = email,
+                    AttemptedAt = DateTime.Now,
+                    IsSuccessful = false, // Önce varsayılan olarak başarısız
+                    FailureReason = failureReason
+                };
                 if (user == null)
                 {
                     MessageBox.Show("E-posta veya şifre hatalı.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    loginAttempt.FailureReason = "Kullanıcı bulunamadı.";
+                    context.LoginAttempts.Add(loginAttempt);
+                    context.SaveChanges();
+                    PasswordTxt.Clear();
                     return;
                 }
 
@@ -51,12 +64,19 @@ namespace login11
                 if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
                 {
                     MessageBox.Show("E-posta veya şifre hatalı.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    loginAttempt.FailureReason = "Yanlış şifre.";
+                    context.LoginAttempts.Add(loginAttempt);
+                    context.SaveChanges();
+                    PasswordTxt.Clear();
                     return;
                 }
 
                 // Kullanıcı e-posta doğrulamasını yaptı mı?
                 if (!user.IsVerified)
                 {
+                    loginAttempt.FailureReason = "E-mail doğrulanmadı..";
+                    context.LoginAttempts.Add(loginAttempt);
+                    context.SaveChanges();
                     MessageBox.Show("Lütfen önce e-posta adresinizi doğrulayın.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     
                     var dogrula = new dogrulaForm();
@@ -66,10 +86,16 @@ namespace login11
                 }
                 if (user.PasswordLastChanged.AddDays(30) <= DateTime.Now)
                 {
+                    loginAttempt.FailureReason = "Şifre kullanım süresi doldu..";
+                    context.LoginAttempts.Add(loginAttempt);
+                    context.SaveChanges();
                     MessageBox.Show("Şifrenizi 30 günde bir yenilemeniz gerekiyor.", "Bilgilendirme", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
                 }
 
+                loginAttempt.IsSuccessful = true;
+                context.LoginAttempts.Add(loginAttempt);
+                context.SaveChanges();
                 // Oturum açma başarılı
                 MessageBox.Show("Giriş başarılı!", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
@@ -82,6 +108,17 @@ namespace login11
             this.Hide();
             var sifredegisForm = new sifredegisForm();
             sifredegisForm.Show();
+        }
+
+        private void label1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void logBtn_Click(object sender, EventArgs e)
+        {
+            var log = new LogForm();
+            log.Show();
         }
     }
 }

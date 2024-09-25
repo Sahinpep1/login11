@@ -11,6 +11,7 @@ namespace login11.Data
 
         public DbSet<User> Users { get; set; }
         public DbSet<UserPassword> UserPasswords { get; set; }
+        public DbSet<LoginAttempt> LoginAttempts { get; set; }
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
@@ -19,7 +20,7 @@ namespace login11.Data
             modelBuilder.Entity<User>()
             .HasIndex(u => u.Email)
             .IsUnique();
-            
+            modelBuilder.Entity<LoginAttempt>().ToTable("LoginAttempts");
 
         }
     }
